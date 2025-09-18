@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>عجلة الحظ</title>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #f7f7f7;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+    }
+
+    /* البار العلوي */
+    .topbar {
+      width: 100%;
+      background: linear-gradient(90deg, #ff6f61, #ffcc00);
+      color: white;
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      padding: 15px 0;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      margin: 25px 0 50px 0; /* زيادة المسافة أسفل العنوان */
+      font-size: 32px;
+      color: #d32f2f;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .container {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px; /* مساحة إضافية فوق العجلة */
+    }
+
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 0 25px rgba(0,0,0,0.4);
+    }
+
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 30px solid red; /* السهم */
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 25px;
+      background: #ff6f61;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      background: #e85a4f;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">🌟 EURO STOCK 🌟</div>
+  <h1>🎰 عجلة الحظ🎰</h1>
+  <div class="container">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="500" height="500"></canvas>
+  </div>
+  <button id="spin">لف العجلة</button>
+  <div id="result"></div>
+
+  <script>
+    class SpinWheel {
+      constructor(probabilities) {
+        if (probabilities.length === 0) throw new Error("Probabilities array should not be empty.");
+        if (probabilities.some(p => p < 0)) throw new Error("Probabilities should be non-negative.");
+        this.probabilities = probabilities;
+        this.totalProbability = probabilities.reduce((a, b) => a + b, 0);
+      }
+      spin() {
+        const randomValue = Math.random() * this.totalProbability;
+        let cumulative = 0;
+        for (let i = 0; i < this.probabilities.length; i++) {
+          cumulative += this.probabilities[i];
+          if (randomValue < cumulative) return i;
+        }
+        return this.probabilities.length - 1;
+      }
+    }
+
+    const prizes = [
+      "خصم خمسة في المية", 
+      "خصم عشرة في المية", 
+      "خصم خمستاشر في المية", 
+      "كسبت تيشيرت نص كم", 
+      " كسبت تيشرت كم", 
+      "حظ سعيد المرة القادمة"
+    ];
+
+    const probabilities = [0.35, 0.15, 0.10, 0.05, 0.05, 0.3];
+    const spinWheel = new SpinWheel(probabilities);
+
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const size = canvas.width;
+    const radius = size / 2;
+    const numSegments = prizes.length;
+    const anglePerSegment = (2 * Math.PI) / numSegments;
+
+    // ألوان جديدة وحيوية
+    const colors = ["#e91e63", "#3f51b5", "#009688", "#ff9800", "#9c27b0", "#03a9f4"];
+
+    function drawWheel(rotation = 0) {
+      ctx.clearRect(0, 0, size, size);
+      for (let i = 0; i < numSegments; i++) {
+        const start = i * anglePerSegment + rotation;
+        const end = start + anglePerSegment;
+        ctx.beginPath();
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, start, end);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(start + anglePerSegment / 2);
+        ctx.fillStyle = "#fff"; // النص أبيض
+        ctx.font = "bold 21px Cairo"; 
+        ctx.textAlign = "center"; 
+        ctx.fillText(prizes[i], radius * 0.6, 10);
+        ctx.restore();
+      }
+    }
+
+    drawWheel();
+
+    document.getElementById("spin").addEventListener("click", () => {
+      const selectedIndex = spinWheel.spin();
+      const stopAngle = (3 * Math.PI / 2) - (selectedIndex * anglePerSegment + anglePerSegment / 2);
+      const spins = 5;
+      const finalAngle = spins * 2 * Math.PI + stopAngle;
+      const duration = 4000;
+      const start = performance.now();
+
+      function animate(time) {
+        const progress = Math.min((time - start) / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentAngle = finalAngle * easeOut;
+        drawWheel(currentAngle);
+        if (progress < 1) requestAnimationFrame(animate);
+        else document.getElementById("result").textContent = ` ${prizes[selectedIndex]}`;
+      }
+
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
